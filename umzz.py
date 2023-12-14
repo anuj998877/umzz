@@ -61,13 +61,23 @@ class UMZZ:
             with reader(self.sidecar) as sidefile:
                 these_lines = sidefile.readlines()
                 if these_lines == self.last_lines:
+                    #print("returned from here")
                     return
                 for line in these_lines:
+                    #print("HERE 12333: ",these_lines,"   ",self.last_lines)
                     line = line.decode().strip().split("#", 1)[0]
                     if "," in line:
                         insert_pts, cue = line.split(",", 1)
+                        #print(insert_pts)
                         for pipe in self.pipes:
                             pipe.send((insert_pts, cue))
+                self.last_lines=these_lines
+                self.clear_sidecar_file()
+
+    def clear_sidecar_file(self):
+        if self.args.live and not self.args.replay:
+            with open(self.args.sidecar_file, "w", encoding="utf8") as scf:
+                scf.close()
 
     def chk_sidecar(self):
         """
@@ -165,7 +175,7 @@ class X9MP(X9K3):
         self.timer.start()
         self.args = None
 
-    def _load_sidecar(self, pid):
+    def _load_sidecar(self):
         """
         _load_sidecar reads (pts, cue) pairs from
         the sidecar file and loads them into x13.sidecar
@@ -176,12 +186,12 @@ class X9MP(X9K3):
                 insert_pts, cue = self.sidecar_pipe.recv()
                 insert_pts = float(insert_pts)
                 if insert_pts == 0.0 and self.args.live:
-                    insert_pts = self.next_start
+                    insert_pts = self.now
                 if [insert_pts, cue] not in self.sidecar:
                     print("Cue from Sidecar: ", insert_pts, cue)
                     self.sidecar.append([insert_pts, cue])
                     self.sidecar = deque(sorted(self.sidecar, key=itemgetter(0)))
-            self._chk_sidecar_cues(pid)
+            #self._chk_sidecar_cues(pid)
 
     def apply_args(self):
         """
